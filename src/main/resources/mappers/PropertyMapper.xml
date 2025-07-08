@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.go.seoul.lwis.bo.tr.sv.mapper.PropertyMapper">
+
+    <select id="findPropertiesBySiteAndProfile" parameterType="map" resultType="map">
+        SELECT
+            PROPERTY_KEY,
+            PROPERTY_VALUE
+        FROM (
+                 SELECT
+                     p.*,
+                     -- 프로파일 일치 여부에 따른 우선순위 부여 (일치=1, default=2, common=3)
+                     ROW_NUMBER() OVER (PARTITION BY p.PROPERTY_KEY ORDER BY
+                    CASE WHEN p.PROFILE = #{profile} THEN 1 WHEN p.PROFILE = 'default' THEN 2 ELSE 3 END,
+                    CASE WHEN p.SITE = #{site} THEN 1 ELSE 2 END
+                ) as rn
+                 FROM PROPERTY_SOURCE p
+                 WHERE (p.SITE = #{site} OR p.SITE = 'COMMON')
+                   AND (p.PROFILE = #{profile} OR p.PROFILE = 'default')
+             ) ranked
+        WHERE rn = 1
+    </select>
+
+</mapper>
